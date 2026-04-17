@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OG Image — SimWorld</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Playfair+Display:ital,wght@0,600;1,600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #070B11; }
+    .card {
+      width: 1200px; height: 630px;
+      background:
+        radial-gradient(ellipse 60% 60% at 15% 20%, rgba(39,180,120,0.18), transparent 55%),
+        radial-gradient(ellipse 50% 50% at 85% 75%, rgba(39,180,120,0.08), transparent 55%),
+        #070B11;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif;
+      color: rgba(255,255,255,0.9);
+      position: relative; overflow: hidden;
+      padding: 0 80px;
+    }
+    /* Dot grid */
+    .card::before {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 40px; position: relative;
+    }
+    .logo-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: #27B478;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 24px;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 8px 32px -8px rgba(39,180,120,0.5);
+    }
+    .logo-text {
+      font-size: 28px; font-weight: 500; color: rgba(255,255,255,0.9);
+      font-family: 'Inter', sans-serif; letter-spacing: -0.01em;
+    }
+    .logo-text i {
+      font-family: 'Playfair Display', serif;
+      font-style: italic; font-weight: 600;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 58px; font-weight: 600;
+      line-height: 1.1; text-align: center;
+      letter-spacing: -0.02em; max-width: 900px;
+      color: rgba(255,255,255,0.92);
+      position: relative;
+    }
+    h1 em {
+      font-style: italic; color: #27B478;
+      text-shadow: 0 0 60px rgba(39,180,120,0.4);
+    }
+    p {
+      font-size: 20px; color: rgba(255,255,255,0.38);
+      margin-top: 22px; font-weight: 300;
+      font-family: 'Inter', sans-serif; position: relative;
+    }
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #27B478; margin-bottom: 20px; position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">S</div>
+      <div class="logo-text">sim<i>world</i></div>
+    </div>
+    <div class="tag">AI-powered scenario simulation</div>
+    <h1>Run the <em>future</em><br>before it happens</h1>
+    <p>Thousands of AI agents react to your announcements in real time</p>
+  </div>
+</body>
+</html>

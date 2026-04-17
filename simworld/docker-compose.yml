@@ -1,0 +1,49 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - CORS_ORIGINS=https://tauri.localhost,tauri://localhost,http://localhost:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  celery-worker:
+    build: ./backend
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery_app worker --loglevel=info
+
+  mirofish:
+    image: ghcr.io/666ghj/mirofish:latest
+    container_name: mirofish
+    env_file:
+      - .env
+    ports:
+      - "5001:5001"
+      - "3001:3000"
+    restart: unless-stopped
+    volumes:
+      - ./mirofish-data:/app/backend/uploads
