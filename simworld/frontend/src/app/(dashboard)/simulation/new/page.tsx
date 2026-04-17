@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { apiPostForm } from "@/lib/utils";
@@ -47,7 +47,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
-export default function NewSimulationPage() {
+function NewSimulationInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -301,5 +301,13 @@ export default function NewSimulationPage() {
         </motion.button>
       </form>
     </motion.div>
+  );
+}
+
+export default function NewSimulationPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewSimulationInner />
+    </Suspense>
   );
 }
