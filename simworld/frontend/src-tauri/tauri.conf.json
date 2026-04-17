@@ -29,5 +29,19 @@
     "shell": {
       "open": true
     }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "SimWorld — run the future before it happens",
+    "longDescription": "SimWorld runs large-scale agent-based simulations to predict how audiences will react to scenarios before they happen."
   }
 }
