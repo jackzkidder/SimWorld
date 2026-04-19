@@ -1,6 +1,6 @@
 [package]
 name = "simworld"
-version = "0.1.0"
+version = "0.1.1"
 description = "SimWorld — AI-powered scenario simulation"
 authors = ["SimWorld"]
 edition = "2021"
