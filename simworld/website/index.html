@@ -204,6 +204,163 @@
     .app-body { position: relative; aspect-ratio: 16/9; }
     .app-body canvas { width: 100%; height: 100%; display: block; }
 
+    /* === CHAT SIMULATION === */
+    .chat-section {
+      padding: 9rem 2rem 10rem;
+      background: linear-gradient(180deg, var(--dark) 0%, #080E15 50%, var(--dark) 100%);
+      position: relative; overflow: hidden;
+    }
+    .chat-header { text-align: center; margin-bottom: 4.5rem; }
+    .chat-header .section-title { margin-bottom: 0.9rem; }
+    .chat-header .section-desc { margin: 0 auto; max-width: 520px; text-align: center; }
+    .chat-stage {
+      max-width: 560px; margin: 0 auto; position: relative;
+    }
+    .chat-frame {
+      position: relative; border-radius: 28px;
+      background: linear-gradient(180deg, rgba(18,24,32,0.92) 0%, rgba(12,17,23,0.96) 100%);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow:
+        0 40px 80px -20px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255,255,255,0.02) inset,
+        0 1px 0 0 rgba(255,255,255,0.06) inset;
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+      animation: chat-float 9s ease-in-out infinite;
+    }
+    @keyframes chat-float {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-6px); }
+    }
+    .chat-topbar {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 1.15rem 1.4rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.015);
+    }
+    .chat-live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 0 rgba(39,180,120,0.6);
+      animation: live-pulse 2s ease-out infinite;
+    }
+    @keyframes live-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(39,180,120,0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(39,180,120,0); }
+      100% { box-shadow: 0 0 0 0 rgba(39,180,120,0); }
+    }
+    .chat-topbar-title {
+      font-family: var(--mono); font-size: 0.7rem;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+    }
+    .chat-topbar-meta {
+      margin-left: auto; font-family: var(--mono); font-size: 0.68rem;
+      color: rgba(255,255,255,0.3); letter-spacing: 0.04em;
+    }
+    .chat-prompt {
+      padding: 1rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: rgba(39,180,120,0.03);
+    }
+    .chat-prompt-label {
+      font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: rgba(39,180,120,0.75);
+      margin-bottom: 0.35rem;
+    }
+    .chat-prompt-text {
+      font-size: 0.88rem; color: rgba(255,255,255,0.72); font-weight: 300;
+      line-height: 1.5;
+    }
+    .chat-body {
+      padding: 1.6rem 1.4rem 1.8rem; display: flex; flex-direction: column;
+      gap: 1.1rem; min-height: 440px;
+    }
+    .chat-msg {
+      display: flex; gap: 0.7rem; max-width: 88%;
+      opacity: 0; transform: translateY(14px);
+    }
+    .chat-msg.revealed {
+      animation: msg-in 0.55s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+    }
+    @keyframes msg-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-avatar {
+      flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+      color: rgba(255,255,255,0.9); letter-spacing: 0.02em;
+      box-shadow: 0 0 0 2px rgba(10,16,22,1);
+    }
+    .chat-bubble-wrap { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+    .chat-meta {
+      display: flex; align-items: baseline; gap: 0.5rem;
+      font-size: 0.7rem; line-height: 1;
+    }
+    .chat-name {
+      color: rgba(255,255,255,0.78); font-weight: 500;
+    }
+    .chat-tag {
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.3); text-transform: lowercase;
+    }
+    .chat-time {
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.22); margin-left: auto;
+    }
+    .chat-bubble {
+      padding: 0.65rem 0.95rem; border-radius: 16px 16px 16px 4px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.035);
+      font-size: 0.88rem; color: rgba(255,255,255,0.82); font-weight: 300;
+      line-height: 1.45; width: fit-content; max-width: 100%;
+    }
+    .chat-msg.positive .chat-bubble {
+      background: linear-gradient(135deg, rgba(39,180,120,0.18) 0%, rgba(39,180,120,0.09) 100%);
+      border-color: rgba(39,180,120,0.25);
+      color: rgba(255,255,255,0.92);
+    }
+    .chat-msg.positive .chat-tag { color: rgba(39,180,120,0.8); }
+    .chat-typing {
+      display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.75rem 0.95rem; border-radius: 16px 16px 16px 4px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.03);
+      width: fit-content;
+    }
+    .chat-typing span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.45);
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+    .chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typing-bounce {
+      0%,60%,100% { transform: translateY(0); opacity: 0.45; }
+      30%         { transform: translateY(-4px); opacity: 1; }
+    }
+    .chat-footer-stats {
+      margin-top: 2.25rem; display: flex; gap: 2.25rem;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .chat-stat { text-align: center; }
+    .chat-stat-num {
+      font-family: var(--serif); font-size: 1.6rem; font-weight: 500;
+      color: rgba(255,255,255,0.9); font-style: italic; letter-spacing: -0.01em;
+    }
+    .chat-stat-num .chat-stat-pos { color: var(--primary); }
+    .chat-stat-label {
+      font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: rgba(255,255,255,0.35);
+      margin-top: 0.35rem;
+    }
+    @media (max-width: 640px) {
+      .chat-section { padding: 6rem 1.25rem 7rem; }
+      .chat-msg { max-width: 96%; }
+      .chat-footer-stats { gap: 1.25rem; }
+      .chat-stat-num { font-size: 1.35rem; }
+    }
+
     /* === STEPS (How it Works) === */
     .steps-section {
       padding: 10rem 2rem;
@@ -523,6 +680,134 @@
   </div>
 </section>
 
+<!-- ====== CHAT SIMULATION ====== -->
+<section class="chat-section section-dark" id="simulation-preview">
+  <canvas class="section-mesh" id="mesh-chat"></canvas>
+  <div class="section-inner">
+    <div class="chat-header">
+      <div class="section-label rv">Inside a simulation</div>
+      <h2 class="section-title rv">Thousands of agents.<br><em class="serif" style="color:var(--primary);font-style:italic;">One</em> conversation at a time.</h2>
+      <p class="section-desc rv">Every agent has their own personality, biases, and history. Watch them react, push back, and form narratives — in real time, at scale.</p>
+    </div>
+
+    <div class="chat-stage rv">
+      <div class="chat-frame">
+        <div class="chat-topbar">
+          <div class="chat-live-dot"></div>
+          <div class="chat-topbar-title">Simulation · sim_c1341bea</div>
+          <div class="chat-topbar-meta">247 agents · round 3</div>
+        </div>
+        <div class="chat-prompt">
+          <div class="chat-prompt-label">Scenario</div>
+          <div class="chat-prompt-text">Apple announces <strong style="color:rgba(255,255,255,0.92);font-weight:500;">Apple Mind</strong> — a $199/month AI assistant with access to your email, calendar, and bank accounts.</div>
+        </div>
+        <div class="chat-body" id="chat-body">
+          <div class="chat-msg" data-msg="0">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#ec4899,#8b5cf6);">SC</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Sarah Chen</span>
+                <span class="chat-tag">· tech journalist</span>
+                <span class="chat-time">1m</span>
+              </div>
+              <div class="chat-bubble">Wait, $199 a <em>month</em>? For an email assistant? The Apple premium is wild.</div>
+            </div>
+          </div>
+
+          <div class="chat-msg" data-msg="1">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#3b82f6,#06b6d4);">MW</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Marcus Webb</span>
+                <span class="chat-tag">· fintech investor</span>
+                <span class="chat-time">1m</span>
+              </div>
+              <div class="chat-bubble">Classic Apple moat play. AAPL +3% pre-market. Lock-in beats innovation every time.</div>
+            </div>
+          </div>
+
+          <div class="chat-msg" data-msg="2">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">LK</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Lena K.</span>
+                <span class="chat-tag">· privacy advocate</span>
+                <span class="chat-time">45s</span>
+              </div>
+              <div class="chat-bubble">Full read/write access to bank accounts. That is… a lot of trust to hand over. Hard pass.</div>
+            </div>
+          </div>
+
+          <div class="chat-msg positive" data-msg="3">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#27B478,#10b981);">DR</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Devon Ross</span>
+                <span class="chat-tag">· early adopter</span>
+                <span class="chat-time">30s</span>
+              </div>
+              <div class="chat-bubble">I'm in. My inbox is a graveyard. $199 is a rounding error if it gives me my evenings back.</div>
+            </div>
+          </div>
+
+          <div class="chat-msg" data-msg="4" id="chat-typing-row">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899);">PN</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Priya N.</span>
+                <span class="chat-tag">· SMB founder</span>
+                <span class="chat-time">now</span>
+              </div>
+              <div class="chat-typing" id="chat-typing">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-msg" data-msg="5" style="display:none;" id="chat-msg-priya">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899);">PN</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Priya N.</span>
+                <span class="chat-tag">· SMB founder</span>
+                <span class="chat-time">now</span>
+              </div>
+              <div class="chat-bubble">If it can actually draft client emails I'd consider it — cheaper than a VA. Cautious yes.</div>
+            </div>
+          </div>
+
+          <div class="chat-msg" data-msg="6">
+            <div class="chat-avatar" style="background:linear-gradient(135deg,#64748b,#475569);">JT</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-meta">
+                <span class="chat-name">Jamal T.</span>
+                <span class="chat-tag">· tech skeptic</span>
+                <span class="chat-time">now</span>
+              </div>
+              <div class="chat-bubble">We said all of this about Alexa in 2015. And Google Home. And Cortana. Show me usage in 18 months.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-footer-stats">
+        <div class="chat-stat">
+          <div class="chat-stat-num"><span class="chat-stat-pos">+62%</span></div>
+          <div class="chat-stat-label">positive sentiment</div>
+        </div>
+        <div class="chat-stat">
+          <div class="chat-stat-num">3.4k</div>
+          <div class="chat-stat-label">messages exchanged</div>
+        </div>
+        <div class="chat-stat">
+          <div class="chat-stat-num">7</div>
+          <div class="chat-stat-label">narratives emerging</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ====== HOW IT WORKS ====== -->
 <section class="steps-section section-dark" id="how">
   <canvas class="section-mesh" id="mesh2"></canvas>
@@ -784,6 +1069,52 @@ initMesh('mesh1',['rgba(39,180,120,.05)','rgba(59,130,246,.03)']);
 initMesh('mesh2',['rgba(39,180,120,.04)','rgba(168,85,247,.025)']);
 initMesh('mesh3',['rgba(59,130,246,.035)','rgba(39,180,120,.04)']);
 initMesh('mesh4',['rgba(39,180,120,.05)','rgba(139,92,246,.03)']);
+initMesh('mesh-chat',['rgba(39,180,120,.05)','rgba(139,92,246,.025)']);
+
+/* ===== CHAT SIMULATION SCROLL ANIMATION ===== */
+(function(){
+  const section = document.getElementById('simulation-preview');
+  if(!section) return;
+  const msgs = section.querySelectorAll('.chat-msg[data-msg]');
+  const typingRow = document.getElementById('chat-typing-row');
+  const priyaMsg = document.getElementById('chat-msg-priya');
+  let played = false;
+
+  function reveal(el, delay){
+    setTimeout(()=>{ if(el) el.classList.add('revealed'); }, delay);
+  }
+
+  function play(){
+    if(played) return;
+    played = true;
+    // Reveal messages 0..3 staggered
+    reveal(msgs[0], 200);
+    reveal(msgs[1], 750);
+    reveal(msgs[2], 1400);
+    reveal(msgs[3], 2100);
+    // Reveal Priya typing indicator
+    reveal(typingRow, 2900);
+    // Swap typing -> Priya's actual message
+    setTimeout(()=>{
+      if(typingRow) typingRow.style.display = 'none';
+      if(priyaMsg){
+        priyaMsg.style.display = '';
+        // trigger reflow so transition applies
+        void priyaMsg.offsetWidth;
+        priyaMsg.classList.add('revealed');
+      }
+    }, 4600);
+    // Final skeptic message
+    reveal(msgs[6], 5400);
+  }
+
+  const chatIO = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ play(); chatIO.unobserve(e.target); }
+    });
+  },{threshold:0.25});
+  chatIO.observe(section);
+})();
 
 /* ===== ORB CANVAS (Final CTA) ===== */
 (function(){
