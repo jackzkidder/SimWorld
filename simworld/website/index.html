@@ -470,6 +470,16 @@
       </a>
       <a href="#how" class="btn-ghost">See how it works</a>
     </div>
+    <div class="hero-alt-downloads" id="dl-alts" style="margin-top:1rem;font-size:0.82rem;opacity:0.55;display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;">
+      <span style="opacity:0.7;">Also for:</span>
+      <a href="#" data-dl="windows" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">Windows</a>
+      <span>·</span>
+      <a href="#" data-dl="mac-arm" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">macOS (Apple Silicon)</a>
+      <span>·</span>
+      <a href="#" data-dl="mac-intel" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">macOS (Intel)</a>
+      <span>·</span>
+      <a href="#" data-dl="linux" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">Linux</a>
+    </div>
   </div>
   <div class="scroll-cue">
     <div class="scroll-dot"></div>
@@ -855,33 +865,58 @@ anime({targets:'.scroll-dot',translateY:[-4,4],duration:900,direction:'alternate
 /* ===== OS DETECTION + DOWNLOAD WIRING ===== */
 (function(){
   const ua=navigator.userAgent.toLowerCase();
-  let os='windows',label='Windows',file=`simworld_${VERSION}_x64-setup.exe`;
   const SVG={
     windows:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>',
     mac:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>',
     linux:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a11.966 11.966 0 0 0 .067.564c.348 2.29 1.89 3.453 3.243 4.27 1.213.732 2.396 1.159 2.938 2.024.568.905 1.112 1.073 1.738 1.073.617 0 1.16-.163 1.726-1.073.542-.865 1.725-1.292 2.938-2.024 1.353-.817 2.895-1.98 3.243-4.27.022-.187.046-.375.067-.564.123-.805-.009-1.657-.287-2.489-.589-1.771-1.831-3.47-2.716-4.521-.75-1.067-.974-1.928-1.05-3.02-.065-1.491 1.056-5.965-3.17-6.298A5.11 5.11 0 0 0 12.504 0z"/></svg>'
   };
-  if(ua.includes('mac')){os='mac';label='macOS';file=`SimWorld_${VERSION}_aarch64.dmg`;}
-  else if(ua.includes('linux')){os='linux';label='Linux';file=`simworld_${VERSION}_amd64.deb`;}
+  // Installer filenames — must match what tauri-action produces (casing matters).
+  const FILES={
+    'windows':   `SimWorld_${VERSION}_x64-setup.exe`,
+    'mac-arm':   `SimWorld_${VERSION}_aarch64.dmg`,
+    'mac-intel': `SimWorld_${VERSION}_x64.dmg`,
+    'linux':     `SimWorld_${VERSION}_amd64.AppImage`
+  };
+  const LABELS={
+    'windows':   {label:'Windows',              short:'Windows',             svg:SVG.windows},
+    'mac-arm':   {label:'macOS (Apple Silicon)',short:'macOS (Apple Silicon)',svg:SVG.mac},
+    'mac-intel': {label:'macOS (Intel)',        short:'macOS (Intel)',        svg:SVG.mac},
+    'linux':     {label:'Linux',                short:'Linux',                svg:SVG.linux}
+  };
 
-  const dlURL=`https://github.com/${GITHUB_REPO}/releases/latest/download/${file}`;
+  // Auto-detect the visitor's OS for the primary button.
+  let key='windows';
+  if(ua.includes('mac')){
+    // Default Mac users to Apple Silicon (shipping since 2020).
+    // Intel Macs can still grab their build from the "Also for" row.
+    key='mac-arm';
+  } else if(ua.includes('linux')){
+    key='linux';
+  }
+
+  const urlFor=k=>`https://github.com/${GITHUB_REPO}/releases/latest/download/${FILES[k]}`;
   const relURL=`https://github.com/${GITHUB_REPO}/releases`;
 
   const p=document.getElementById('dl-primary'),f=document.getElementById('dl-final');
+  const alts=document.querySelectorAll('#dl-alts a[data-dl]');
   const allReleases=document.querySelectorAll('a[href*="releases"]');
 
   if(RELEASES_LIVE){
-    // Real downloads
-    if(p){p.href=dlURL;p.innerHTML=SVG[os]+' Download for '+label;}
-    if(f){f.href=dlURL;f.textContent='Download for '+label;}
+    // Primary button — matches detected OS
+    if(p){p.href=urlFor(key);p.innerHTML=LABELS[key].svg+' Download for '+LABELS[key].label;}
+    if(f){f.href=urlFor(key);f.textContent='Download for '+LABELS[key].label;}
+    // Alt-downloads row — all four platforms available on click
+    alts.forEach(a=>{
+      const k=a.dataset.dl;
+      if(FILES[k]){a.href=urlFor(k);}
+    });
     allReleases.forEach(a=>{if(a.href.includes('releases'))a.href=relURL;});
   } else {
-    // Not released yet — show waitlist on click, update button text
-    if(p){p.removeAttribute('href');p.innerHTML=SVG[os]+' Download for '+label;
-      p.addEventListener('click',e=>{e.preventDefault();document.getElementById('toast-plan').value='download-'+os;showToast('Launching soon for '+label,'Be first to know when it\'s ready.');});}
-    if(f){f.removeAttribute('href');f.style.cursor='pointer';f.textContent='Download for '+label;
-      f.addEventListener('click',e=>{e.preventDefault();document.getElementById('toast-plan').value='download-'+os;showToast('Launching soon for '+label,'Be first to know when it\'s ready.');});}
-    // "All releases" → GitHub repo page
+    // Not released yet — show waitlist on click
+    const wait=(os)=>e=>{e.preventDefault();document.getElementById('toast-plan').value='download-'+os;showToast('Launching soon for '+LABELS[os].short,'Be first to know when it\'s ready.');};
+    if(p){p.removeAttribute('href');p.innerHTML=LABELS[key].svg+' Download for '+LABELS[key].label;p.addEventListener('click',wait(key));}
+    if(f){f.removeAttribute('href');f.style.cursor='pointer';f.textContent='Download for '+LABELS[key].label;f.addEventListener('click',wait(key));}
+    alts.forEach(a=>{a.removeAttribute('href');a.style.cursor='pointer';a.addEventListener('click',wait(a.dataset.dl));});
     allReleases.forEach(a=>{a.href=`https://github.com/${GITHUB_REPO}`;});
   }
 })();
