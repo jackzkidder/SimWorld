@@ -1172,13 +1172,91 @@ initMesh('mesh-chat',['rgba(39,180,120,.05)','rgba(139,92,246,.025)']);
 /* ===== ANIME.JS ===== */
 if(typeof anime==='undefined')return;
 
-// Hero entrance
-anime.timeline({easing:'easeOutExpo'})
-  .add({targets:'.hero-label',opacity:[0,1],translateY:[10,0],duration:800,delay:300})
-  .add({targets:'.hero h1',opacity:[0,1],translateY:[14,0],duration:900},'-=600')
-  .add({targets:'.hero-sub',opacity:[0,1],translateY:[14,0],duration:900},'-=700')
-  .add({targets:'.hero-actions',opacity:[0,1],translateY:[14,0],duration:900},'-=700')
-  .add({targets:'.scroll-cue',opacity:[0,.6],duration:1200},'-=400');
+// Hero entrance — editorial blur-lift, no bounce, long overlap
+(function(){
+  // Split h1 into word spans so each word settles individually
+  const h1 = document.querySelector('.hero h1');
+  if(h1 && !h1.dataset.split){
+    const nodes = Array.from(h1.childNodes);
+    h1.innerHTML = '';
+    nodes.forEach(n=>{
+      if(n.nodeType === 3){
+        n.textContent.split(/(\s+)/).forEach(part=>{
+          if(!part) return;
+          if(/^\s+$/.test(part)){ h1.appendChild(document.createTextNode(part)); return; }
+          const s = document.createElement('span');
+          s.className = 'hero-word';
+          s.textContent = part;
+          s.style.display = 'inline-block';
+          s.style.willChange = 'opacity, transform, filter';
+          h1.appendChild(s);
+        });
+      } else if(n.nodeName === 'BR'){
+        h1.appendChild(n);
+      } else {
+        // <em> or other inline: wrap its text as a hero-word, preserve styling via class
+        const s = document.createElement('span');
+        s.className = 'hero-word';
+        s.style.display = 'inline-block';
+        s.style.willChange = 'opacity, transform, filter';
+        s.appendChild(n);
+        h1.appendChild(s);
+      }
+    });
+    h1.dataset.split = '1';
+    // Parent is now safe to show; the per-word spans carry the opacity
+    h1.style.opacity = '1';
+  }
+
+  // Pre-hide hero-alt-downloads to avoid a flash before the timeline starts
+  const altDl = document.querySelector('.hero-alt-downloads');
+  if(altDl){ altDl.style.opacity = '0'; }
+
+  const softEase = 'cubicBezier(0.22, 1, 0.36, 1)';
+  const tl = anime.timeline({easing: softEase});
+
+  tl.add({
+    targets: '.hero-label',
+    opacity: [0, 0.55],
+    translateY: [4, 0],
+    filter: ['blur(6px)', 'blur(0px)'],
+    duration: 1400,
+    delay: 400
+  })
+  .add({
+    targets: '.hero-word',
+    opacity: [0, 1],
+    translateY: [8, 0],
+    filter: ['blur(8px)', 'blur(0px)'],
+    duration: 1600,
+    delay: anime.stagger(90)
+  }, '-=1100')
+  .add({
+    targets: '.hero-sub',
+    opacity: [0, 1],
+    translateY: [6, 0],
+    filter: ['blur(6px)', 'blur(0px)'],
+    duration: 1400
+  }, '-=900')
+  .add({
+    targets: '.hero-actions',
+    opacity: [0, 1],
+    translateY: [4, 0],
+    filter: ['blur(4px)', 'blur(0px)'],
+    duration: 1200
+  }, '-=1000')
+  .add({
+    targets: '.hero-alt-downloads',
+    opacity: [0, 0.55],
+    translateY: [4, 0],
+    duration: 1200
+  }, '-=900')
+  .add({
+    targets: '.scroll-cue',
+    opacity: [0, .6],
+    duration: 1600
+  }, '-=700');
+})();
 
 // Scroll-triggered reveals
 const io=new IntersectionObserver((entries)=>{
