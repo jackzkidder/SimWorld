@@ -996,24 +996,50 @@ const VERSION       = '0.1.1';
 /* ===== HERO PARTICLE CANVAS ===== */
 const hc=document.getElementById('hero-canvas'),hx=hc.getContext('2d');
 let hW,hH,hNodes=[],mouse={x:-9e3,y:-9e3};
+/* Gravity pulls particles downward so the hero feels anchored and weighty.
+   Larger mass = lower particles fall faster (parallax). Wrap top → bottom. */
+const HERO_G = 0.018;
 function hResize(){const r=devicePixelRatio||1;hW=hc.clientWidth;hH=hc.clientHeight;hc.width=hW*r;hc.height=hH*r;hx.scale(r,r);}
-function hInit(){hNodes=[];for(let i=0;i<130;i++)hNodes.push({x:Math.random()*hW,y:Math.random()*hH,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:1.5+Math.random()*2});}
+function hInit(){
+  hNodes=[];
+  for(let i=0;i<160;i++){
+    const m = 0.5 + Math.random()*1.6; // mass: bigger = heavier = faster fall
+    hNodes.push({
+      x:Math.random()*hW,
+      y:Math.random()*hH,
+      vx:(Math.random()-.5)*.22,
+      vy:(Math.random()-.5)*.18 + 0.15, // initial slight downward drift
+      r:1.5 + m*1.4,
+      m:m
+    });
+  }
+}
 function hDraw(){
   hx.clearRect(0,0,hW,hH);
   for(let i=0;i<hNodes.length;i++){
     const a=hNodes[i];
     const dx=a.x-mouse.x,dy=a.y-mouse.y,md=Math.sqrt(dx*dx+dy*dy);
-    if(md<200&&md>0){const f=(200-md)/200*.5;a.vx+=dx/md*f;a.vy+=dy/md*f;}
-    a.vx*=.985;a.vy*=.985;a.x+=a.vx;a.y+=a.vy;
-    if(a.x<0)a.x=hW;if(a.x>hW)a.x=0;if(a.y<0)a.y=hH;if(a.y>hH)a.y=0;
+    if(md<220&&md>0){const f=(220-md)/220*.55;a.vx+=dx/md*f;a.vy+=dy/md*f;}
+    // Gravity — scaled by mass so heavy nodes sink faster (sense of weight)
+    a.vy += HERO_G * a.m;
+    // Air drag — a little less than before so momentum carries
+    a.vx*=.992;a.vy*=.994;
+    // Terminal velocity so nothing turns into a missile
+    if(a.vy > 1.4) a.vy = 1.4;
+    a.x+=a.vx;a.y+=a.vy;
+    // Wrap edges — bottom → top respawn keeps the rain continuous
+    if(a.x<-4)a.x=hW+4; if(a.x>hW+4)a.x=-4;
+    if(a.y>hH+6){a.y=-6; a.x=Math.random()*hW; a.vy=0.1+Math.random()*0.2;}
+    if(a.y<-12)a.y=hH+6;
     for(let j=i+1;j<hNodes.length;j++){
       const b=hNodes[j],bx=a.x-b.x,by=a.y-b.y,d=Math.sqrt(bx*bx+by*by);
-      if(d<130){hx.strokeStyle=`rgba(39,180,120,${(1-d/130)*.1})`;hx.lineWidth=.5;hx.beginPath();hx.moveTo(a.x,a.y);hx.lineTo(b.x,b.y);hx.stroke();}
+      if(d<140){hx.strokeStyle=`rgba(39,180,120,${(1-d/140)*.1})`;hx.lineWidth=.5;hx.beginPath();hx.moveTo(a.x,a.y);hx.lineTo(b.x,b.y);hx.stroke();}
     }
-    const g=hx.createRadialGradient(a.x,a.y,0,a.x,a.y,a.r*5);
-    g.addColorStop(0,'rgba(39,180,120,.25)');g.addColorStop(1,'rgba(39,180,120,0)');
-    hx.fillStyle=g;hx.beginPath();hx.arc(a.x,a.y,a.r*5,0,Math.PI*2);hx.fill();
-    hx.fillStyle='rgba(39,180,120,.65)';hx.beginPath();hx.arc(a.x,a.y,a.r,0,Math.PI*2);hx.fill();
+    const g=hx.createRadialGradient(a.x,a.y,0,a.x,a.y,a.r*5.5);
+    g.addColorStop(0,`rgba(39,180,120,${0.18 + a.m*0.08})`);g.addColorStop(1,'rgba(39,180,120,0)');
+    hx.fillStyle=g;hx.beginPath();hx.arc(a.x,a.y,a.r*5.5,0,Math.PI*2);hx.fill();
+    hx.fillStyle=`rgba(39,180,120,${0.55 + a.m*0.08})`;
+    hx.beginPath();hx.arc(a.x,a.y,a.r,0,Math.PI*2);hx.fill();
   }
   requestAnimationFrame(hDraw);
 }
