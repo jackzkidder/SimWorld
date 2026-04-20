@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { API_BASE_URL, apiGet, apiPost } from "@/lib/utils";
+import { API_BASE_URL, apiGet } from "@/lib/utils";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
-  BarChart,
-  Bar,
-  Cell,
 } from "recharts";
+import MiniNetworkPreview from "@/components/results/MiniNetworkPreview";
+import AgentDrilldownDrawer from "@/components/results/AgentDrilldownDrawer";
 
 interface SimulationData {
   simulation_id: string;
@@ -136,6 +135,7 @@ export default function SimulationClient() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "agents" | "narratives">("overview");
   const [copied, setCopied] = useState(false);
+  const [drilldownAgent, setDrilldownAgent] = useState<Agent | null>(null);
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -329,9 +329,29 @@ export default function SimulationClient() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "overview" && <OverviewTab result={result} />}
-      {activeTab === "agents" && <AgentsTab agents={result.agents} simulationId={sim.simulation_id} />}
+      {activeTab === "overview" && (
+        <OverviewTab
+          result={result}
+          simulationId={sim.simulation_id}
+          onSelectAgent={setDrilldownAgent}
+        />
+      )}
+      {activeTab === "agents" && (
+        <AgentsTab
+          agents={result.agents}
+          onSelectAgent={setDrilldownAgent}
+        />
+      )}
       {activeTab === "narratives" && <NarrativesTab narratives={result.narratives} inflections={result.inflection_points} />}
+
+      {drilldownAgent && (
+        <AgentDrilldownDrawer
+          agent={drilldownAgent}
+          simulationId={sim.simulation_id}
+          timeline={result.timeline}
+          onClose={() => setDrilldownAgent(null)}
+        />
+      )}
 
       {/* Recommended Actions */}
       <div className="rounded-xl p-6 mt-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}>
@@ -439,22 +459,55 @@ function ProgressScreen({ sim }: { sim: SimulationData }) {
   );
 }
 
-function OverviewTab({ result }: { result: SimulationResult }) {
+function OverviewTab({
+  result,
+  simulationId,
+  onSelectAgent,
+}: {
+  result: SimulationResult;
+  simulationId: string;
+  onSelectAgent: (a: Agent) => void;
+}) {
   return (
     <div className="space-y-4">
-      {/* Sentiment Timeline */}
+      {/* Embedded animated network — the "run the future" payoff, surfaced */}
+      <MiniNetworkPreview
+        agents={result.agents}
+        timeline={result.timeline}
+        simulationId={simulationId}
+        onSelectAgent={onSelectAgent}
+      />
+
+      {/* Sentiment Over Time — stacked area so composition is legible at a glance */}
       <div className="rounded-xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}>
         <h3 className="font-medium text-sm mb-5 text-white/85">Sentiment Over Time</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={result.timeline}>
+            <AreaChart data={result.timeline} stackOffset="expand">
+              <defs>
+                <linearGradient id="grad-pos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.positive} stopOpacity={0.7} />
+                  <stop offset="95%" stopColor={CHART_COLORS.positive} stopOpacity={0.35} />
+                </linearGradient>
+                <linearGradient id="grad-neu" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.neutral} stopOpacity={0.55} />
+                  <stop offset="95%" stopColor={CHART_COLORS.neutral} stopOpacity={0.25} />
+                </linearGradient>
+                <linearGradient id="grad-neg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.negative} stopOpacity={0.65} />
+                  <stop offset="95%" stopColor={CHART_COLORS.negative} stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
               <XAxis
                 dataKey="round"
                 tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
                 label={{ value: "Round", position: "insideBottom", offset: -4, fontSize: 10, fill: CHART_COLORS.tick }}
               />
-              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
+                tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: CHART_COLORS.tooltipBg,
@@ -463,58 +516,46 @@ function OverviewTab({ result }: { result: SimulationResult }) {
                   fontSize: "11px",
                   backdropFilter: "blur(12px)",
                   color: "rgba(255,255,255,0.85)",
+                }}
+                formatter={(value, name, entry) => {
+                  const v = typeof value === "number" ? value : Number(value) || 0;
+                  const p = (entry as { payload?: TimelinePoint } | undefined)?.payload;
+                  const total = p ? (p.positive + p.negative + p.neutral) : 0;
+                  const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+                  return [`${v} (${pct}%)`, name] as [string, string | number];
                 }}
               />
               <Legend wrapperStyle={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }} />
-              <Line type="monotone" dataKey="positive" stroke={CHART_COLORS.positive} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="negative" stroke={CHART_COLORS.negative} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="neutral" stroke={CHART_COLORS.neutral} strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Sentiment Breakdown */}
-      <div className="rounded-xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}>
-        <h3 className="font-medium text-sm mb-5 text-white/85">Sentiment Breakdown</h3>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={Object.entries(result.stats.sentiment_breakdown).map(
-                ([key, val]) => ({ name: key, count: val })
-              )}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: CHART_COLORS.tick }} />
-              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: CHART_COLORS.tooltipBg,
-                  border: `1px solid ${CHART_COLORS.tooltipBorder}`,
-                  borderRadius: "12px",
-                  fontSize: "11px",
-                  backdropFilter: "blur(12px)",
-                  color: "rgba(255,255,255,0.85)",
-                }}
+              <Area
+                type="monotone"
+                dataKey="positive"
+                stackId="1"
+                stroke={CHART_COLORS.positive}
+                strokeWidth={1.2}
+                fill="url(#grad-pos)"
               />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {Object.entries(result.stats.sentiment_breakdown).map(
-                  ([key], idx) => (
-                    <Cell
-                      key={idx}
-                      fill={
-                        key === "positive" ? CHART_COLORS.positive
-                          : key === "negative" ? CHART_COLORS.negative
-                          : key === "mixed" ? CHART_COLORS.mixed
-                          : CHART_COLORS.neutral
-                      }
-                    />
-                  )
-                )}
-              </Bar>
-            </BarChart>
+              <Area
+                type="monotone"
+                dataKey="neutral"
+                stackId="1"
+                stroke={CHART_COLORS.neutral}
+                strokeWidth={1.2}
+                fill="url(#grad-neu)"
+              />
+              <Area
+                type="monotone"
+                dataKey="negative"
+                stackId="1"
+                stroke={CHART_COLORS.negative}
+                strokeWidth={1.2}
+                fill="url(#grad-neg)"
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-[10px] font-mono text-white/25 mt-3">
+          Stacked share of sentiment per round. The full height is normalized so composition reads at a glance.
+        </p>
       </div>
 
       {/* Inflection Points */}
@@ -543,9 +584,8 @@ function OverviewTab({ result }: { result: SimulationResult }) {
   );
 }
 
-function AgentsTab({ agents, simulationId }: { agents: Agent[]; simulationId: string }) {
+function AgentsTab({ agents, onSelectAgent }: { agents: Agent[]; onSelectAgent: (a: Agent) => void }) {
   const [filter, setFilter] = useState("all");
-  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
   const filtered = filter === "all" ? agents : agents.filter((a) => a.sentiment === filter);
   const topAgents = [...filtered].sort((a, b) => b.influence_score - a.influence_score);
 
@@ -576,7 +616,7 @@ function AgentsTab({ agents, simulationId }: { agents: Agent[]; simulationId: st
         {topAgents.slice(0, 20).map((agent, idx) => (
           <button
             key={agent.id}
-            onClick={() => setChatAgent(agent)}
+            onClick={() => onSelectAgent(agent)}
             className="w-full px-5 py-3.5 flex items-center justify-between transition-all hover:bg-white/[0.05] text-left group"
             style={idx > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : undefined}
           >
@@ -595,7 +635,7 @@ function AgentsTab({ agents, simulationId }: { agents: Agent[]; simulationId: st
               <div className="text-[11px] font-mono text-white/35">{agent.posts_count} posts</div>
               <div className="text-[11px] font-mono text-white/20">{agent.influence_score}</div>
               <SentimentDot sentiment={agent.sentiment} />
-              <span className="text-[11px] text-white/0 group-hover:text-primary transition-colors font-mono">chat →</span>
+              <span className="text-[11px] text-white/0 group-hover:text-primary transition-colors font-mono">inspect →</span>
             </div>
           </button>
         ))}
@@ -605,177 +645,6 @@ function AgentsTab({ agents, simulationId }: { agents: Agent[]; simulationId: st
           Showing 20 of {filtered.length} agents
         </p>
       )}
-
-      {chatAgent && (
-        <AgentChatDrawer
-          agent={chatAgent}
-          simulationId={simulationId}
-          onClose={() => setChatAgent(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-interface ChatMessage {
-  role: "user" | "agent";
-  content: string;
-  loading?: boolean;
-}
-
-function AgentChatDrawer({
-  agent,
-  simulationId,
-  onClose,
-}: {
-  agent: Agent;
-  simulationId: string;
-  onClose: () => void;
-}) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
-
-  async function sendMessage() {
-    const msg = input.trim();
-    if (!msg || sending) return;
-
-    setInput("");
-    setSending(true);
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: msg },
-      { role: "agent", content: "", loading: true },
-    ]);
-
-    const result = await apiPost<{ success: boolean; data?: { message?: string } | string }>(
-      `/api/simulations/${simulationId}/agents/${agent.id}/chat`,
-      { message: msg }
-    );
-
-    let reply = "Sorry, I couldn't respond right now.";
-    if (result.ok && result.data?.success) {
-      const d = result.data.data;
-      reply = typeof d === "string" ? d : d?.message || reply;
-    }
-
-    setMessages((prev) => [
-      ...prev.slice(0, -1),
-      { role: "agent", content: reply },
-    ]);
-    setSending(false);
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in-up" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }} onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col"
-        style={{
-          background: "linear-gradient(180deg, #0e141a 0%, #0a0f14 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          maxHeight: "85vh",
-          minHeight: "520px",
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/25 to-primary/5 flex items-center justify-center text-[12px] font-bold text-primary ring-1 ring-primary/20">
-              {agent.name.charAt(0)}
-            </div>
-            <div>
-              <div className="text-[14px] font-medium text-white/90">{agent.name}</div>
-              <div className="text-[11px] text-white/40 font-light">{agent.role} &middot; {agent.platform}</div>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-white/40 hover:text-white/80 transition p-1.5 rounded-lg hover:bg-white/5"
-            aria-label="Close"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M2 2l10 10M12 2L2 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {messages.length === 0 && (
-            <div className="text-center py-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-mono mb-4 text-primary border border-primary/20 bg-primary/5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                Claude-powered in-character chat
-              </div>
-              <p className="text-[13px] text-white/45 font-light max-w-xs mx-auto leading-relaxed">
-                Ask {agent.name.split(" ")[0]} anything about the scenario. They&apos;ll respond from their perspective.
-              </p>
-              <div className="flex flex-wrap gap-1.5 justify-center mt-5">
-                {[
-                  "What's your take on this?",
-                  "What worries you most?",
-                  "How would you respond?",
-                ].map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => { setInput(q); }}
-                    className="text-[11px] px-3 py-1.5 rounded-full border border-white/10 text-white/50 hover:text-white/80 hover:border-primary/30 hover:bg-primary/5 transition"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
-                  m.role === "user" ? "bg-primary/15 text-white/90 ring-1 ring-primary/20" : "bg-white/[0.04] text-white/80 ring-1 ring-white/[0.06]"
-                }`}
-              >
-                {m.loading ? (
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: "0.4s" }} />
-                  </span>
-                ) : (
-                  m.content
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Input */}
-        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
-              placeholder={`Message ${agent.name.split(" ")[0]}...`}
-              disabled={sending}
-              className="flex-1 bg-transparent text-[13px] text-white/85 placeholder:text-white/25 outline-none disabled:opacity-50"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || sending}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-lg bg-primary text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary/90 transition"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
