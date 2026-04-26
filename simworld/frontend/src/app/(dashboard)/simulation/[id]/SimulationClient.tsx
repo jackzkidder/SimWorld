@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { API_BASE_URL, apiGet } from "@/lib/utils";
 import {
@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import MiniNetworkPreview from "@/components/results/MiniNetworkPreview";
 import AgentDrilldownDrawer from "@/components/results/AgentDrilldownDrawer";
+import { GlassButton, GlassFilter } from "@/components/ui/LiquidGlass";
 
 interface SimulationData {
   simulation_id: string;
@@ -130,6 +131,7 @@ const CHART_COLORS = {
 
 export default function SimulationClient() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [sim, setSim] = useState<SimulationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -197,6 +199,9 @@ export default function SimulationClient() {
 
   return (
     <div className="animate-fade-in-up">
+      {/* SVG distortion filter — mounted once for liquid-glass elements on this page */}
+      <GlassFilter />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -212,11 +217,11 @@ export default function SimulationClient() {
             {sim.prediction_question}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-2.5">
+          <GlassButton
+            size="sm"
+            tint="subtle"
             onClick={() => window.open(`${API_BASE_URL}/api/simulations/${id}/pdf`, "_blank")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all hover:bg-white/5"
-            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -224,16 +229,16 @@ export default function SimulationClient() {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             PDF
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
+            size="sm"
+            tint="subtle"
             onClick={async () => {
               const url = `${window.location.origin}/simulation/${id}`;
               await navigator.clipboard.writeText(url);
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all hover:bg-white/5"
-            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
@@ -241,10 +246,12 @@ export default function SimulationClient() {
               <line x1="12" y1="2" x2="12" y2="15" />
             </svg>
             {copied ? "Copied!" : "Share"}
-          </button>
-          <Link
-            href={`/simulation/${id}/network`}
-            className="bg-primary text-white flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium hover:opacity-90 transition-all shadow-md shadow-primary/20"
+          </GlassButton>
+          <GlassButton
+            size="sm"
+            tint="strong"
+            onClick={() => router.push(`/simulation/${id}/network`)}
+            className="text-emerald-300"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="2" />
@@ -258,7 +265,7 @@ export default function SimulationClient() {
               <line x1="14" y1="14" x2="16" y2="16" />
             </svg>
             Network
-          </Link>
+          </GlassButton>
         </div>
       </div>
 
