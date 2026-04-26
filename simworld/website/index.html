@@ -994,23 +994,28 @@ const VERSION       = '0.1.1';
 /* ============================================ */
 
 /* ===== HERO PARTICLE CANVAS ===== */
+/* Smooth ambient drift — no gravity, no falling.  Each node has its own
+   target velocity that slowly retargets, producing flowing currents instead
+   of straight-line motion.  Mouse repulsion is preserved but gentler. */
 const hc=document.getElementById('hero-canvas'),hx=hc.getContext('2d');
 let hW,hH,hNodes=[],mouse={x:-9e3,y:-9e3};
-/* Gravity pulls particles downward so the hero feels anchored and weighty.
-   Larger mass = lower particles fall faster (parallax). Wrap top → bottom. */
-const HERO_G = 0.018;
 function hResize(){const r=devicePixelRatio||1;hW=hc.clientWidth;hH=hc.clientHeight;hc.width=hW*r;hc.height=hH*r;hx.scale(r,r);}
 function hInit(){
   hNodes=[];
-  for(let i=0;i<160;i++){
-    const m = 0.5 + Math.random()*1.6; // mass: bigger = heavier = faster fall
+  for(let i=0;i<150;i++){
+    const m = 0.7 + Math.random()*1.1; // mass affects size + glow only
+    const ang = Math.random()*Math.PI*2;
+    const sp  = 0.08 + Math.random()*0.18;
     hNodes.push({
       x:Math.random()*hW,
       y:Math.random()*hH,
-      vx:(Math.random()-.5)*.22,
-      vy:(Math.random()-.5)*.18 + 0.15, // initial slight downward drift
-      r:1.5 + m*1.4,
-      m:m
+      vx:Math.cos(ang)*sp,
+      vy:Math.sin(ang)*sp,
+      tvx:Math.cos(ang)*sp,   // target velocity – retargets slowly
+      tvy:Math.sin(ang)*sp,
+      r:1.5 + m*1.3,
+      m:m,
+      retargetIn: 60 + Math.floor(Math.random()*240)
     });
   }
 }
@@ -1018,27 +1023,38 @@ function hDraw(){
   hx.clearRect(0,0,hW,hH);
   for(let i=0;i<hNodes.length;i++){
     const a=hNodes[i];
+    // Gentle mouse repulsion
     const dx=a.x-mouse.x,dy=a.y-mouse.y,md=Math.sqrt(dx*dx+dy*dy);
-    if(md<220&&md>0){const f=(220-md)/220*.55;a.vx+=dx/md*f;a.vy+=dy/md*f;}
-    // Gravity — scaled by mass so heavy nodes sink faster (sense of weight)
-    a.vy += HERO_G * a.m;
-    // Air drag — a little less than before so momentum carries
-    a.vx*=.992;a.vy*=.994;
-    // Terminal velocity so nothing turns into a missile
-    if(a.vy > 1.4) a.vy = 1.4;
-    a.x+=a.vx;a.y+=a.vy;
-    // Wrap edges — bottom → top respawn keeps the rain continuous
-    if(a.x<-4)a.x=hW+4; if(a.x>hW+4)a.x=-4;
-    if(a.y>hH+6){a.y=-6; a.x=Math.random()*hW; a.vy=0.1+Math.random()*0.2;}
-    if(a.y<-12)a.y=hH+6;
+    if(md<200&&md>0){const f=(200-md)/200*.35;a.vx+=dx/md*f;a.vy+=dy/md*f;}
+    // Slowly retarget direction so motion curves rather than goes straight
+    a.retargetIn--;
+    if(a.retargetIn<=0){
+      const ang = Math.random()*Math.PI*2;
+      const sp  = 0.08 + Math.random()*0.18;
+      a.tvx = Math.cos(ang)*sp; a.tvy = Math.sin(ang)*sp;
+      a.retargetIn = 120 + Math.floor(Math.random()*300);
+    }
+    // Ease velocity toward target — produces smooth, breathing currents
+    a.vx += (a.tvx - a.vx) * 0.012;
+    a.vy += (a.tvy - a.vy) * 0.012;
+    // Soft drag so mouse impulse fades cleanly
+    a.vx *= 0.992; a.vy *= 0.992;
+    a.x += a.vx; a.y += a.vy;
+    // Edge wrap (all four sides — no bias toward bottom)
+    if(a.x<-4) a.x = hW+4;
+    if(a.x>hW+4) a.x = -4;
+    if(a.y<-4) a.y = hH+4;
+    if(a.y>hH+4) a.y = -4;
+    // Connecting lines
     for(let j=i+1;j<hNodes.length;j++){
       const b=hNodes[j],bx=a.x-b.x,by=a.y-b.y,d=Math.sqrt(bx*bx+by*by);
       if(d<140){hx.strokeStyle=`rgba(39,180,120,${(1-d/140)*.1})`;hx.lineWidth=.5;hx.beginPath();hx.moveTo(a.x,a.y);hx.lineTo(b.x,b.y);hx.stroke();}
     }
+    // Soft glow + core
     const g=hx.createRadialGradient(a.x,a.y,0,a.x,a.y,a.r*5.5);
-    g.addColorStop(0,`rgba(39,180,120,${0.18 + a.m*0.08})`);g.addColorStop(1,'rgba(39,180,120,0)');
+    g.addColorStop(0,`rgba(39,180,120,${0.18 + a.m*0.06})`);g.addColorStop(1,'rgba(39,180,120,0)');
     hx.fillStyle=g;hx.beginPath();hx.arc(a.x,a.y,a.r*5.5,0,Math.PI*2);hx.fill();
-    hx.fillStyle=`rgba(39,180,120,${0.55 + a.m*0.08})`;
+    hx.fillStyle=`rgba(39,180,120,${0.55 + a.m*0.06})`;
     hx.beginPath();hx.arc(a.x,a.y,a.r,0,Math.PI*2);hx.fill();
   }
   requestAnimationFrame(hDraw);
